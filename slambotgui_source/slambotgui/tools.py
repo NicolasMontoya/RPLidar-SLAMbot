@@ -2,7 +2,7 @@
 
 # tools.py - helper tools for package
 # 
-# Copyright (C) 2014 Michael Searing
+# Copyright (C) 2015 Michael Searing
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,31 +21,38 @@
 from math import sin, cos, degrees, radians
 from matplotlib.lines import Line2D
 
-from sys import version_info
-PYTHON_SERIES = version_info[0]
+import sys
+PYTHON_SERIES = sys.version_info[0]
+
+from os.path import isfile
 
 
 # Python tools
 if PYTHON_SERIES == 3: raw_input = lambda inStr: input(inStr)
 else: raw_input = raw_input
-# else: raw_input = raw_input
 def askForFile(filePath, mode):
-  try: # check if file already exists
-    testFile = open(filePath, 'r')
-  except IOError:
-    if 'r' in mode: # trying to read from file, so make sure it exists
-      print("IOError: Could not find log file at {0:s}".format(logFilePath))
-      sys.exit("Please correct log file name.")
-    else:
-      pass
-  else:
-    testFile.close()
-    if 'w' in mode: # trying to write to file, so make sure not to accidentally overwrite anything
+  if not (mode == 'r' or mode == 'w'):
+    sys.exit("Use open() directly to open files for reading and writing.")
+  if isfile(filePath): # file already exists
+    if 'r' in mode:
+      pass # open it
+    if 'w' in mode:
       if raw_input("File {0:s} already exists. Overwrite? [Y/n]: ".format(filePath)).lower() == 'n':
-        sys.exit("Then please select new log file location.")
-    else:
-      pass
-  return open(filePath, mode)
+        sys.exit("Please select new log file location.")
+      else:
+        pass # rewrite it
+  else: # file doesn't exist
+    if 'r' in mode:
+      print("IOError: Could not find file at {0:s}".format(filePath))
+      sys.exit("Please check file name.")
+    if 'w' in mode:
+      print("Creating log file at {0:s}.".format(filePath))
+      pass # create it
+  try:
+    return open(filePath, mode)
+  except IOError:
+    print("IOError: Could not open or create file at {0:s}".format(filePath))
+    sys.exit("Please check permissions.")
 
 
 # Drawing tools
@@ -106,7 +113,7 @@ def translatePt(point, vector): # performs translation by given vector
   return (point[0]+vector[0], point[1]+vector[1], point[2])
 def vecDiff(vec1, vec2):
   return tuple([el1 - el2 for el1, el2 in zip(vec1, vec2)])
-def wrt(point_old, frame_old, frame_new): # return point with respect to new reference frame
+def wrt(point_old, frame_old, frame_new): # return point with respect to new reference frame (all defined within same frame)
   diff = vecDiff(frame_new, frame_old)
   return rotatePt(translatePt(rotatePt(point_old, frame_old[2]), [-diff[0], -diff[1]]), -frame_new[2])
 

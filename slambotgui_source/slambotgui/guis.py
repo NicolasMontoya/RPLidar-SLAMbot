@@ -2,7 +2,7 @@
 
 # guis.py - GUI frames for Tkinter
 # 
-# Copyright (C) 2014 Michael Searing
+# Copyright (C) 2015 Michael Searing
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,17 +26,18 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 VIEW_SIZE_M = 8.0 # default size of region to be shown in display [m]
-DPI = 132.2 # calculated from $ xrandr
+DPI = 131.2 # calculated from $ xrandr
 CMAP = plt.get_cmap('gray') # opposite of "binary"
 
 
 class RegionFrame(tk.Frame): # tkinter frame, inheriting from the tkinter Frame class
+  # displays the region map with robot at current position, which is scrollable and zoomable, using matplotlib
   # init            draws all fields in the output frame of the main App
   # updateMaps      draws all map data onto the matplotlib figures
   # removeMarkers   deletes all temporary markers on the main map (old robot position)
   # drawMarker      draws robot on main map using matplotlib marker
 
-  def __init__(self, master, mapMatrix, setDisplayMode=None, MAP_SIZE_M=8, **unused):
+  def __init__(self, master, mapMatrix, MAP_SIZE_M=8, **unused):
     tk.Frame.__init__(self, master) # explicitly initialize base class and create window
     self.markers = [] # current matplotlib markers
 
@@ -64,25 +65,6 @@ class RegionFrame(tk.Frame): # tkinter frame, inheriting from the tkinter Frame 
     self.canvas._tkcanvas.pack(fill='both', expand=True)
     NavigationToolbar2TkAgg(self.canvas, self)
 
-
-    displayModeFrame = tk.Frame(self)
-    tk.Label(displayModeFrame, text="Map display mode: ").pack(side='left')
-
-    self.setDisplayMode = setDisplayMode
-    displayMode = tk.StringVar()
-    displayMode.set('Default')
-    displayModes = {'Default': 0,
-                    'Breezy': 1,
-                    'Points': 2,
-                    'Filtered': 3,
-                    'Edges': 4,
-                    'Targets': 5,
-                    'Roads': 6}
-    options = sorted(displayModes.iterkeys(), key=lambda k: displayModes[k]) # get keys, in value order
-    tk.OptionMenu(displayModeFrame, displayMode, *options).pack(side='left')
-    displayMode.trace('w', lambda *args: self.setDisplayMode(displayModes[displayMode.get()]))
-    displayModeFrame.pack(side='bottom')
-
   def updateMap(self, robotRel, destination, mapMatrix):
     # send maps to image object
     self.myImg.set_data(mapMatrix) # 20ms
@@ -99,9 +81,36 @@ class RegionFrame(tk.Frame): # tkinter frame, inheriting from the tkinter Frame 
 ######################################################################################
 
 
+class DisplayModeFrame(tk.Frame): # tkinter frame, inheriting from the tkinter Frame class
+  # contains selector box to change view status of the region map
+  # init    draws all fields in the output frame of the main App
+
+  def __init__(self, master, setDisplayMode=None):
+    tk.Frame.__init__(self, master) # explicitly initialize base class and create window
+    tk.Label(self, text="Map display mode: ").pack(side='left')
+
+    self.setDisplayMode = setDisplayMode
+    displayMode = tk.StringVar()
+    displayMode.set('Default')
+    displayModes = {'Default': 0,
+                    'Breezy': 1,
+                    'Points': 2,
+                    'Filtered': 3,
+                    'Edges': 4,
+                    'Targets': 5,
+                    'Roads': 6}
+    options = sorted(displayModes.iterkeys(), key=lambda k: displayModes[k]) # get keys, in value order
+    tk.OptionMenu(self, displayMode, *options).pack(side='left')
+    displayMode.trace('w', lambda *args: self.setDisplayMode(displayModes[displayMode.get()]))
+
+
+######################################################################################
+
+
 from math import atan2, degrees
 
 class InsetFrame(tk.Frame): # tkinter frame, inheriting from the tkinter Frame class
+  # displays robot's environs oriented to the robot, supporting clicking on the map to send a drive command
   # init            draws all fields in the output frame of the main App
   # updateMaps      draws all map data onto the matplotlib figures
   # removeMarkers   deletes all temporary markers on the main map (old robot position)
@@ -174,11 +183,13 @@ CMD_RATE = 100 # minimum time between auto-send commands [ms]
 MAX_TX_TRIES = 3 # max number of times to try to resend command before giving up
 
 class EntryFrame(tk.Frame):
+  # displays the status of the robot and contains methods to send data to the robot while running base station code to control robot
   # sendCommand     send string to command entry box, identical to typing command and hitting Send/<Return>
   # manualSend      triggered by request to manually send the command in the text box
   # autoSendCommand loop to control sending of commands, including automatic retries and continuous drive commands
 
-  def __init__(self, master, robot, closeWin, restartAll, saveImage, getACK, resetACK, TXQueue, statusStr, twoLines=False):
+  def __init__(self, master, robot, closeWin, restartAll, saveImage, getACK, resetACK, TXQueue, statusStr, 
+               twoLines=False, setDisplayMode=None, SMARTNESS_ON=False, **unused):
     tk.Frame.__init__(self, master) # explicitly initialize base class and create window
     self.master = master
 
@@ -192,6 +203,9 @@ class EntryFrame(tk.Frame):
     self.closeWin, self.restartAll, self.saveImage, self.getACK, self.resetACK, self.TXQueue, self.statusStr \
       =  closeWin,      restartAll,      saveImage,      getACK,      resetACK,      TXQueue,      statusStr
 
+    if SMARTNESS_ON:
+      displayModeFrame = DisplayModeFrame(self, setDisplayMode)
+      displayModeFrame.pack(side='top')
 
     # create buttons
     monospaceFont = Font(family="Courier", weight='bold', size=12)
@@ -283,12 +297,19 @@ class EntryFrame(tk.Frame):
 ######################################################################################
 
 class StatusFrame(tk.Frame):
-  def __init__(self, master, closeWin, restartAll, saveImage, statusStr, twoLines=False):
+  # displays the status of the robot and allows basic operations to be used during replay of logged data
+
+  def __init__(self, master, closeWin, restartAll, saveImage, statusStr, 
+               twoLines=False, setDisplayMode=None, SMARTNESS_ON=False, **unused):
     tk.Frame.__init__(self, master, bd=5, relief='sunken') # explicitly initialize base class and create window
     self.master = master
 
     self.closeWin, self.restartAll, self.saveImage, self.statusStr \
       =  closeWin,      restartAll,      saveImage, statusStr
+
+    if SMARTNESS_ON:
+      displayModeFrame = DisplayModeFrame(self, setDisplayMode)
+      displayModeFrame.pack(side='bottom')
 
     # create buttons
     monospaceFont = Font(family="Courier", weight='bold', size=12)

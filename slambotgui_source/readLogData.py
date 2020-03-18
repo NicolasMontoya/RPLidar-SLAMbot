@@ -2,7 +2,7 @@
 
 # baseStationMain.py - base station code for Aerospace Robotics SLAMbot project
 # 
-# Copyright (C) 2014 Michael Searing
+# Copyright (C) 2015 Michael Searing
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-GPL = "breezySLAM_XBEE.py Copyright (C) 2014 Michael Searing \n\
+GPL = "breezySLAM_XBEE.py Copyright (C) 2015 Michael Searing \n\
 This program comes with ABSOLUTELY NO WARRANTY. \n\
 This is free software, and you are welcome to redistribute it \n\
 under certain conditions; please cite the source."
@@ -40,15 +40,15 @@ from slambotgui.components import DaguRover5, RPLIDAR
 
 # User preferences
 INTERNAL_MAP = False
-SMARTNESS_ON = False
+SMARTNESS_ON = True
 FAST_MAPPING = True
 logFileDirectory = ['examples'] # leave as empty string in list for current directory
-logFileName = 'data_24JUL14_14m.log'
+logFileName = 'data_6AUG14_16m.log'
 if FAST_MAPPING: from slambotgui.cvslamshow import SlamShow # uses OpenCV
 
 # SLAM preferences
 USE_ODOMETRY = True
-MAP_QUALITY = 3
+MAP_QUALITY = 7
 
 # GUI constants
 DATA_RATE = 1 # minimum time between updating data from lidar [ms] # can't be 0
@@ -120,14 +120,16 @@ class App(object):
       # create the OpenCV window
       self.regionFrame = SlamShow(CV_IMG_SIZE, CV_IMG_RES_PIX_PER_MM, 'SLAM Rover: Hit ESC to quit')
       # create Tkinter control frames
-      self.statusFrame = StatusFrame(self.master, self.closeWin, self.restartAll, self.saveImage, self.statusStr, twoLines=True)
+      self.statusFrame = StatusFrame(self.master, self.closeWin, self.restartAll, self.saveImage, self.statusStr, 
+                                     twoLines=True, setDisplayMode=self.setDisplayMode, **KWARGS)
       self.insetFrame = InsetFrame(self.master, self.data.getInsetMatrix(), **KWARGS)
       # pack frame
       self.statusFrame.pack(side='bottom', fill='x')
       self.insetFrame.pack(side='left', fill='both', expand=True)
     else:
       # create all the pretty stuff in the Tkinter window
-      self.statusFrame = StatusFrame(self.master, self.closeWin, self.restartAll, self.saveImage, self.statusStr)
+      self.statusFrame = StatusFrame(self.master, self.closeWin, self.restartAll, self.saveImage, self.statusStr, 
+                                     setDisplayMode=self.setDisplayMode, **KWARGS)
       self.regionFrame = RegionFrame(self.master, self.data.getMapMatrix(), setDisplayMode=self.setDisplayMode, **KWARGS)
       self.insetFrame = InsetFrame(self.master, self.data.getInsetMatrix(), **KWARGS)
       # pack frames
